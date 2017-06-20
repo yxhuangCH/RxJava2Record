@@ -1,0 +1,13 @@
+Observable.create(...)  io.reactivex.Observale.java
+	RxJavaPlugins#onAssembly(...) io.reactivex.plugins.RxJavaPlugins.java
+
+
+
+Observable.subscribe(...)  io.reactivex.Observale.java
+	Observable.subscribeActual(...)  io.reactivex.Observale.java 抽象方法
+		ObservableCreate#subscribeActual(...) io.reactivex.internal.operators.observable.ObservableCreate.java 实现类
+			ObservableOnSubscribe.subscribe(...)  io.reactivex.ObservableOnSubscribe.java  接口
+				ObservableEmitter.onNext(...)    io.reactivex.ObservableEmitter.java 接口
+					CreateEmitter.onNext(...) 	 io.reactivex.internal.operators.observable.ObservableCreate$CreateEmitter.java 实现类
+						Observer.onNext(...)	数据传递到观察者，调用观察者的 onNext() 方法 
+						至此，观察者与被观察的关系建立起来

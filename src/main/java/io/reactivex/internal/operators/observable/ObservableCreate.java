@@ -33,10 +33,15 @@ public final class ObservableCreate<T> extends Observable<T> {
 
     @Override
     protected void subscribeActual(Observer<? super T> observer) {
+        // observer 是 subscribe(new Observer<Integer>() {...} 中的匿名函数 Observer
         CreateEmitter<T> parent = new CreateEmitter<T>(observer);
         observer.onSubscribe(parent);
 
         try {
+            // source 是建立时的 ObservableOnSubscribe
+            // 这里会调用 e.Next(1),  e.onComplete();
+            // e 是 ObservableEmitter，这个接口，实现类是 CreateEmitter
+            // 所以，最终会调用 CreateEmitter.Next(), CreateEmitter.onComplete() 方法
             source.subscribe(parent);
         } catch (Throwable ex) {
             Exceptions.throwIfFatal(ex);

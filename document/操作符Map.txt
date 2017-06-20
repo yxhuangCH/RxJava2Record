@@ -1,0 +1,6 @@
+Observable#map(...)   io.reactivex.Observable.java
+	RxJavaPlugins.onAssembly(...) io.reactivex.plugins.RxJavaPlugins.java
+		ObservableMap.subscribeActual(...)	io.reactivex.internal.operators.observable.ObservableMap.java
+			ObservableSource.subscribe(...) io.reactivex.ObservableSource.java  接口
+				Observable#subscribe(...)	io.reactivex.Observable.java
+					Observable#subscribeActual() io.reactivex.Observable.java

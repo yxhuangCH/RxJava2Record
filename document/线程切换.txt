@@ -1,0 +1,24 @@
+﻿Observale#observOn		o.reactivex.Observale.java
+	ObservableObserveOnz#subscribeActual 	io.reactivex.internal.operators.observable.ObservableObserveOn.java
+		Scheduler#createWorker()  createWorker() 是个抽象方法，由实现类实现
+			ObservableSource#subscribe() 
+				ObserveOnObserver#onSubscribe()
+					queue = new SpscLinkedArrayQueue<T>(bufferZize); 创建队列
+						Observer#onSubscribe(...) (actual.onSubscrible(this))
+							ObservaleObserverOn#onNext(...)
+								ObservaleObserverOn#schedule()
+									Scheduler.Worker#schedule(...)
+										ObservableObserveOn#run()
+											  ObservableObserveOn#drainNormal()
+											  		queue.poll() 队列取数据
+											  			Observer.next(..) (a.onNext())  向下游发送数据
+											  				Observer.onNext()  (LambdaObserver#onNext())	// 实现类是 LambdaObserver, io.reactivex.internal.observers.LambdaObserver.java
+																Consumer.accept()
+
+
+
+
+
+
+
+Observale#observeOn(...)		o.reactivex.Observale.java

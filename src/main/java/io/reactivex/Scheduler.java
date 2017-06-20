@@ -126,7 +126,7 @@ public abstract class Scheduler {
      */
     @NonNull
     public Disposable scheduleDirect(@NonNull Runnable run, long delay, @NonNull TimeUnit unit) {
-        final Worker w = createWorker();
+        final Worker w = createWorker();   // 抽象方法
 
         final Runnable decoratedRun = RxJavaPlugins.onSchedule(run);
 

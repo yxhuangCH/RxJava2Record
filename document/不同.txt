@@ -1,0 +1,10 @@
+What's differen in 2.0
+
+1. No longer accepts null value. 
+	Observable.just(null);
+	Single.just(null);
+
+will yield NullPointerException.
+
+
+2. 

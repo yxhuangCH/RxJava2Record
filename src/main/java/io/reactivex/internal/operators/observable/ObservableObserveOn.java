@@ -29,10 +29,10 @@ public final class ObservableObserveOn<T> extends AbstractObservableWithUpstream
     final boolean delayError;
     final int bufferSize;
     public ObservableObserveOn(ObservableSource<T> source, Scheduler scheduler, boolean delayError, int bufferSize) {
-        super(source);
-        this.scheduler = scheduler;
+        super(source);                                  // 上游的  ObservableSource，也是 Observale 对象，这里是 ObservableSubseribleOn
+        this.scheduler = scheduler;             //  切换的 Scheduler
         this.delayError = delayError;
-        this.bufferSize = bufferSize;
+        this.bufferSize = bufferSize;           // 线程池缓存 128
     }
 
     @Override
@@ -40,8 +40,10 @@ public final class ObservableObserveOn<T> extends AbstractObservableWithUpstream
         if (scheduler instanceof TrampolineScheduler) {
             source.subscribe(observer);
         } else {
-            Scheduler.Worker w = scheduler.createWorker();
+            Scheduler.Worker w = scheduler.createWorker();  // 这里调用 AndroidSchedulers.mainThread()  返回  HandlerWorker
 
+            // source.subscribe  其实是调用 ObservableSubseribleOn, 因为  ObservableSubseribleOn extands Observable,
+            // 所以， source.subscrible 调用的是  Observable#subscribe(...) 方法
             source.subscribe(new ObserveOnObserver<T>(observer, w, delayError, bufferSize));
         }
     }
@@ -103,7 +105,7 @@ public final class ObservableObserveOn<T> extends AbstractObservableWithUpstream
 
                 queue = new SpscLinkedArrayQueue<T>(bufferSize);
 
-                actual.onSubscribe(this);
+                actual.onSubscribe(this);  // actual 是 终点 Observer
             }
         }
 

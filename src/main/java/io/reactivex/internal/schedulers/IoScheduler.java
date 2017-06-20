@@ -227,7 +227,8 @@ public final class IoScheduler extends Scheduler {
                 return EmptyDisposable.INSTANCE;
             }
 
-            return threadWorker.scheduleActual(action, delayTime, unit, tasks);
+            // action 在 NewThreadWorker#scheduleActual(...) 中执行，新线程
+            return threadWorker.scheduleActual(action, delayTime, unit, tasks);  // NewThreadWorker#scheduleActual(...)
         }
     }
 

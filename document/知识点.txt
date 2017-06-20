@@ -1,0 +1,196 @@
+1. ScheduledThreadPoolExecutor
+
+
+1. Observable 接口， 实现类 ObservableCreate
+	ObservableOnSubscribe
+
+	ObservableEmitter 接口， CreateEmitter 实现类
+
+
+总图
+Observable.create(..) <-- ObservableCreate
+.subscribeOn(IoScheduler) <-- ObservableSubscribeOn
+.observeOn(AndroidSchedulers.mainThread())  <-- ObservableObserveOn
+.subscribe(new Observer)  <-- 调用抽象方法 Observale.subscribeActual(), 由实现类实现
+
+
+由于
+ObservableSubscribeOn extends AbstractObservableWithUpstream 
+
+ObservableObserveOn<T> extends AbstractObservableWithUpstream
+
+AbstractObservableWithUpstream extends Observable implements HasUpstreamObservableSource
+	
+ObservableSubscribeOn 和  ObservableObserveOn 都 extends Observable, 所以它们都是 Observale 对象，
+所以，都会调用它们的 subscribeActual() 方法
+ObservableSubscribeOn#subscribeActual()
+ObservableObserveOn#subscribeActual()
+
+
+Observable implements ObservableSource
+
+public interface ObservableSource<T> {
+
+    void subscribe(Observer<? super T> observer);
+}
+
+
+
+总的流程图(箭头向下)
+Observable#subscrible(终点 Observer)
+
+Observable#subscribeActual(终点 Observer) 抽象方法，由实现类 ObservableObserveOn 实现
+
+ObservableObserveOn#subscribeActual(终点 Observer)
+
+Scheduler#createWorker()  抽象方法，由实现类 HandlerScheduler 实现
+
+HandlerScheduler#createWorker() 返回 HandlerWorker
+
+// AObserveOnObserver = new ObserveOnObserver(终点 Observe, HandlerWorker, delayError, bufferSize);
+ObservableSource#subscribe(AObserveOnObserver) 接口方法， 由实现类 ObservableSubscribeOn 实现, 
+
+
+ObservableSubscribeOn#subscribe(AObserveOnObserver);
+Observable#subscrible(AObserveOnObserver);    因为 ObservableSubscribeOn extands Observable, 所以调用的是 
+													Observable#subscrible();
+Observable#subscribeActual(AObserveOnObserver);
+
+ObservableSubscribeOn#subscribeActual(AObserveOnObserver);
+
+AObserveOnObserver#onSubscribe(new SubscribeOnObserver(AObserveOnObserver))； @1 ??? 如何执行？？？？
+
+ObserveOnObserver#onSubscribe(new SubscribeOnObserver(AObserveOnObserver));   ObservableObserveOn$ObserveOnObserver.java
+
+
+@2 
+Scheduler#scheduleDirect(new SubscribeTask(SubscribeOnObserver))
+
+Scheduler#scheduleDirect(new SubscribeTask(SubscribeOnObserver), 0L, TimeUnit.NANOSECONDS)  重载函数
+
+Worker w = createWorker(); 抽象方法，由实现类实现 这里是 IoScheduler
+
+IoScheduler#createWorker();  返回 EventLoopWorker
+
+Worker.schedule(...) [执行的是  EventLoopWorker#schedule()]
+
+threadWorker.scheduleActual(action, delayTime, unit, tasks); [执行的是 NewThreadWorker#scheduleActual(...)}
+
+ScheduledExecutorService#submit(...)  线程池执行，在新线程 第一次线程切换
+
+
+******* 以下内容在新线程中执行 ******
+ScheduledRunnable#run()    
+
+actual.run();  io.reactivex.internal.operators.observable.ObservableSubscribeOn.java
+				actual 最终追溯到 ObservableSubscribeOn# subscribeActual(...) 方法中的
+  parent.setDisposable(scheduler.scheduleDirect(new Runnable() {
+            @Override
+            public void run() {
+                source.subscribe(parent);  // parent 是 io.reactivex.internal.operators.observable.ObservableSubscribeOn$SubscribeOnObserver
+            }
+        }));
+
+    的 source.subscribe(parent);  这里的 source 是 ObservableCreate, 
+
+ ObservableCreate#subscribe(parent)
+
+ ObservableCreate#subscribeActual(parent)
+
+source.subscribe(parent);  source 是数据的源头，这里是 new ObservableOnSubscribe<Integer>() 
+						   到现在为止我们都是在新线程中运行，所以数据源是在 新线程中运行的。
+
+（数据源发射数据的过程）
+ObservableEmitter#onNext(...), ObservableEmitter#onComplete(...); ObservableEmitter 是接口，实现类是 CreateEmitter
+
+CreateEmitter#onNext(...);    io.reactivex.internal.operators.observable.ObservableCreate$CreateEmitter.java
+
+observer.onNext(t); observer 是 parent, SubscribeOnObserver
+
+SubscribeOnObserver#onNext(..)
+
+actual.onNext(t);   actual 是 AObserveOnObserver,  ObserveOnObserver , io.reactivex.internal.operators.observable.ObservableObserveOn$ObserveOnObserver.java
+
+AObserveOnObserver#onNext(...);
+
+ObserveOnObserver#onNext(...);
+
+
+ObserveOnObserver#schedule();
+
+worker.schedule(this);   worker 是 ObservableObserveOn#subscribeActual(Observer) 中的 Scheduler.Worker w = scheduler.createWorker();
+						 这里的 shecduler 是 HandlerScheduler，所以 worker 是 HandlerWorker；
+
+Worker#schedule(Runnable, 0L, TimeUnit.NANOSECONDS);  抽象方法，由实现类实现
+
+HandlerWorker#schedule(Runnable, 0L, TimeUnit.NANOSECONDS)；
+
+Handler.sendMessageDelayed(); 将 Runnable 封装成 new ScheduledRunnable(handler, run)， 发送回主线程
+
+**************************************** 新线程结束 ****************************************************************************
+
+
+######################################## 主线程中执行 #########################################################################
+
+ScheduledRunnable#run();    io.reactivex.android.schedulers.HandlerScheduler$ScheduledRunnable.java
+
+delegate.run();  delegate 是 Worker#schedule(Runnable, 0L, TimeUnit.NANOSECONDS) 中的 Runable, 最终是 ObserveOnObserver
+
+ObserveOnObserver#run();
+
+ObserveOnObserver#drainNormal();
+
+v = q.poll(); q 是 queue， SimpleQueue； SimpleQueue 是接口，实现类是 SpscLinkedArrayQueue， SpscLinkedArrayQueue 是个生成消费队列
+				这里是从队列中取出一个值；
+
+a.onNext(v);  a 是 Observer， Observer 是 终点 Observer
+
+至此，整个流程结束！
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ObservableObserveOn#subscribeActual() --> ObservableSubscribeOn#subscribeActual() --> ObservableSubscribeOn#onSubscribe()
+																									|
+																									|
+																									<
+ObservableCreate#subscribeActual()
+
+
+GOTO 2016 • Exploring RxJava 2 for Android • Jake Wharton
+https://www.youtube.com/watch?v=htIXKI5gOQU
+
+Completeable
+.Either completes or errors. Has no items!
+
+. No backpressure support.
+
+. Think "reactive runnable"
+
+
+Maybe 
+

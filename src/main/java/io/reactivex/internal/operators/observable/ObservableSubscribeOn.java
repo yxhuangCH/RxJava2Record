@@ -23,16 +23,21 @@ public final class ObservableSubscribeOn<T> extends AbstractObservableWithUpstre
     final Scheduler scheduler;
 
     public ObservableSubscribeOn(ObservableSource<T> source, Scheduler scheduler) {
+        // source 是 ObservableCreate
         super(source);
-        this.scheduler = scheduler;
+        this.scheduler = scheduler;  // 是创建时的 Scheduler,  这里是 IoScheduler
     }
 
     @Override
     public void subscribeActual(final Observer<? super T> s) {
-        final SubscribeOnObserver<T> parent = new SubscribeOnObserver<T>(s);
+        // s 作为下游的 Observer, 这里是 ObservaleObserveOn
+        final SubscribeOnObserver<T> parent = new SubscribeOnObserver<T>(s);    // parent
 
+        @1
         s.onSubscribe(parent);
 
+        // scheduler.scheduleDirect 由 scheduler 的实现类实现，例如 IoScheduler
+        @2
         parent.setDisposable(scheduler.scheduleDirect(new SubscribeTask(parent)));
     }
 
